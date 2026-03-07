@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>npm Semantic Search</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f0f13;
+      --surface: #18181f;
+      --surface2: #22222c;
+      --border: #2e2e3a;
+      --accent: #cb3837; /* npm red */
+      --accent2: #f97316;
+      --text: #e8e8ed;
+      --muted: #888899;
+      --radius: 10px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* ── Header ── */
+    header {
+      width: 100%;
+      max-width: 780px;
+      padding: 56px 20px 0;
+      text-align: center;
+    }
+
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .npm-badge {
+      background: var(--accent);
+      color: #fff;
+      font-weight: 800;
+      font-size: 1.25rem;
+      padding: 4px 10px;
+      border-radius: 4px;
+      letter-spacing: -0.5px;
+    }
+
+    .logo-text {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .tagline {
+      color: var(--muted);
+      font-size: 0.95rem;
+      margin-bottom: 32px;
+    }
+
+    .tagline strong {
+      color: var(--accent2);
+    }
+
+    /* ── Search box ── */
+    .search-wrapper {
+      position: relative;
+      width: 100%;
+      max-width: 640px;
+      margin: 0 auto;
+    }
+
+    #search-input {
+      width: 100%;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 999px;
+      color: var(--text);
+      font-size: 1.05rem;
+      padding: 14px 56px 14px 22px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    #search-input::placeholder { color: var(--muted); }
+    #search-input:focus { border-color: var(--accent); }
+
+    .search-btn {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: var(--accent);
+      border: none;
+      border-radius: 999px;
+      color: #fff;
+      cursor: pointer;
+      padding: 8px 16px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .search-btn:hover { background: #a82f2e; }
+
+    /* ── Examples ── */
+    .examples {
+      margin-top: 14px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+    }
+
+    .example-chip {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 0.82rem;
+      padding: 5px 13px;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .example-chip:hover {
+      border-color: var(--accent);
+      color: var(--text);
+    }
+
+    /* ── Main ── */
+    main {
+      width: 100%;
+      max-width: 780px;
+      padding: 32px 20px 60px;
+    }
+
+    /* ── States ── */
+    .state {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      padding: 60px 0;
+      gap: 12px;
+      color: var(--muted);
+    }
+    .state.active { display: flex; }
+
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error-icon { font-size: 2rem; }
+    .error-msg {
+      color: #f87171;
+      font-size: 0.9rem;
+      text-align: center;
+      max-width: 480px;
+    }
+
+    /* ── Results header ── */
+    .results-meta {
+      font-size: 0.83rem;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+
+    /* ── Result cards ── */
+    .result-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      margin-bottom: 12px;
+      transition: border-color 0.2s, transform 0.15s;
+    }
+    .result-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-1px);
+    }
+
+    .card-top {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin-bottom: 6px;
+      flex-wrap: wrap;
+    }
+
+    .pkg-name {
+      color: #fff;
+      font-weight: 700;
+      font-size: 1.05rem;
+      text-decoration: none;
+    }
+    .pkg-name:hover { text-decoration: underline; color: var(--accent); }
+
+    .pkg-version {
+      font-size: 0.78rem;
+      color: var(--muted);
+      background: var(--surface2);
+      border-radius: 4px;
+      padding: 2px 7px;
+    }
+
+    .pkg-description {
+      color: #c8c8d4;
+      font-size: 0.9rem;
+      line-height: 1.55;
+      margin-bottom: 8px;
+    }
+
+    .pkg-footer {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .keyword-tag {
+      background: var(--surface2);
+      border-radius: 4px;
+      color: var(--muted);
+      font-size: 0.75rem;
+      padding: 2px 8px;
+    }
+
+    .npm-link {
+      margin-left: auto;
+      color: var(--accent);
+      font-size: 0.8rem;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .npm-link:hover { text-decoration: underline; }
+
+    /* ── Footer ── */
+    footer {
+      margin-top: auto;
+      padding: 24px;
+      color: var(--muted);
+      font-size: 0.8rem;
+      text-align: center;
+    }
+    footer a { color: var(--muted); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <span class="npm-badge">npm</span>
+    <span class="logo-text">Semantic Search</span>
+  </div>
+  <p class="tagline">
+    Search by <strong>meaning</strong>, not keywords &mdash; powered by
+    <strong>ZeroEntropy</strong>
+  </p>
+
+  <div class="search-wrapper">
+    <input
+      id="search-input"
+      type="search"
+      placeholder='Try "drag and drop for React hooks" …'
+      autocomplete="off"
+      spellcheck="false"
+    />
+    <button class="search-btn" id="search-btn">Search</button>
+  </div>
+
+  <div class="examples">
+    <span class="example-chip">drag and drop for React hooks</span>
+    <span class="example-chip">database ORM for Postgres</span>
+    <span class="example-chip">JWT authentication middleware</span>
+    <span class="example-chip">CSV parser streaming</span>
+    <span class="example-chip">date formatting library</span>
+    <span class="example-chip">testing mock HTTP requests</span>
+  </div>
+</header>
+
+<main>
+  <!-- Loading -->
+  <div class="state" id="state-loading">
+    <div class="spinner"></div>
+    <span>Searching…</span>
+  </div>
+
+  <!-- Error -->
+  <div class="state" id="state-error">
+    <div class="error-icon">⚠️</div>
+    <p class="error-msg" id="error-text"></p>
+  </div>
+
+  <!-- Empty -->
+  <div class="state" id="state-empty">
+    <span>No packages found for that query.</span>
+  </div>
+
+  <!-- Results -->
+  <div id="results-container" style="display:none">
+    <p class="results-meta" id="results-meta"></p>
+    <div id="results-list"></div>
+  </div>
+</main>
+
+<footer>
+  Top 10,000 npm packages indexed with
+  <a href="https://zeroentropy.dev" target="_blank">ZeroEntropy</a>
+  semantic search &bull;
+  <a href="https://www.npmjs.com" target="_blank">npmjs.com</a>
+</footer>
+
+<script>
+  const input   = document.getElementById('search-input');
+  const btn     = document.getElementById('search-btn');
+  const stLoad  = document.getElementById('state-loading');
+  const stErr   = document.getElementById('state-error');
+  const stEmpty = document.getElementById('state-empty');
+  const resCont = document.getElementById('results-container');
+  const resMeta = document.getElementById('results-meta');
+  const resList = document.getElementById('results-list');
+  const errText = document.getElementById('error-text');
+
+  let debounceTimer;
+
+  function setState(name) {
+    [stLoad, stErr, stEmpty].forEach(el => el.classList.remove('active'));
+    resCont.style.display = 'none';
+    if (name === 'loading') stLoad.classList.add('active');
+    if (name === 'error')   stErr.classList.add('active');
+    if (name === 'empty')   stEmpty.classList.add('active');
+    if (name === 'results') resCont.style.display = 'block';
+  }
+
+  function escapeHtml(str) {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function renderResults(data) {
+    if (!data.results || !data.results.length) {
+      setState('empty');
+      return;
+    }
+
+    resMeta.textContent =
+      `${data.results.length} result${data.results.length > 1 ? 's' : ''} for "${data.query}"`;
+
+    resList.innerHTML = data.results.map(pkg => {
+      const keywords = (pkg.keywords || '')
+        .split(',')
+        .map(k => k.trim())
+        .filter(Boolean)
+        .slice(0, 5)
+        .map(k => `<span class="keyword-tag">${escapeHtml(k)}</span>`)
+        .join('');
+
+      const version = pkg.version
+        ? `<span class="pkg-version">v${escapeHtml(pkg.version)}</span>`
+        : '';
+
+      const desc = pkg.description
+        ? `<p class="pkg-description">${escapeHtml(pkg.description)}</p>`
+        : '';
+
+      return `
+        <div class="result-card">
+          <div class="card-top">
+            <a class="pkg-name" href="${escapeHtml(pkg.npm_url)}" target="_blank" rel="noopener">
+              ${escapeHtml(pkg.name)}
+            </a>
+            ${version}
+          </div>
+          ${desc}
+          <div class="pkg-footer">
+            ${keywords}
+            <a class="npm-link" href="${escapeHtml(pkg.npm_url)}" target="_blank" rel="noopener">
+              View on npm ↗
+            </a>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    setState('results');
+  }
+
+  async function doSearch(q) {
+    if (!q.trim()) return;
+    setState('loading');
+    try {
+      const res = await fetch(`/api/search?q=${encodeURIComponent(q)}&k=10`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      renderResults(data);
+    } catch (err) {
+      errText.textContent = err.message;
+      setState('error');
+    }
+  }
+
+  btn.addEventListener('click', () => doSearch(input.value));
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') doSearch(input.value);
+  });
+
+  // Live search with debounce
+  input.addEventListener('input', () => {
+    clearTimeout(debounceTimer);
+    const q = input.value.trim();
+    if (q.length < 3) return;
+    debounceTimer = setTimeout(() => doSearch(q), 400);
+  });
+
+  // Example chips
+  document.querySelectorAll('.example-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      input.value = chip.textContent;
+      doSearch(chip.textContent);
+    });
+  });
+</script>
+</body>
+</html>
