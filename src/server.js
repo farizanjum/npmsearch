@@ -122,14 +122,19 @@ app.get('/api/status', async (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
-// Start
+// Start (skip listen when imported as a Vercel serverless function)
 // ---------------------------------------------------------------------------
 
-app.listen(PORT, () => {
-  console.log(`\nnpm Semantic Search is running at http://localhost:${PORT}`);
-  console.log(`Collection : ${COLLECTION_NAME}`);
-  console.log(`ZeroEntropy: ${ZE_BASE_URL}`);
-  if (!ZE_API_KEY) {
-    console.warn('WARNING: ZERO_ENTROPY_API_KEY is not set – search will fail!');
-  }
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`\nnpm Semantic Search is running at http://localhost:${PORT}`);
+    console.log(`Collection : ${COLLECTION_NAME}`);
+    console.log(`ZeroEntropy: ${ZE_BASE_URL}`);
+    if (!ZE_API_KEY) {
+      console.warn('WARNING: ZERO_ENTROPY_API_KEY is not set – search will fail!');
+    }
+  });
+}
+
+// Export for Vercel serverless
+module.exports = app;
