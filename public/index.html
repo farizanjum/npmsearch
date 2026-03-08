@@ -66,13 +66,54 @@
         border-bottom: 1px solid var(--border);
         color: var(--muted);
         font-size: 0.82rem;
-        text-align: center;
-        padding: 9px 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 9px 36px 9px 20px; /* Extra padding on right for the close button */
         line-height: 1.4;
+        position: relative;
+        transition:
+          opacity 0.3s var(--ease),
+          height 0.3s var(--ease),
+          padding 0.3s var(--ease),
+          margin 0.3s var(--ease);
+      }
+      .top-banner-content {
+        white-space: nowrap; /* Force one liner */
+        overflow: hidden;
+        text-overflow: ellipsis; /* Add ... if it somehow overflows extremely small screens */
       }
       .top-banner strong {
         color: var(--text);
         font-weight: 500;
+      }
+      .top-banner-close {
+        position: absolute;
+        right: 12px;
+        background: none;
+        border: none;
+        color: var(--dim);
+        cursor: pointer;
+        padding: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        transition:
+          color 0.15s,
+          background 0.15s;
+      }
+      .top-banner-close:hover {
+        color: var(--text);
+        background: rgba(255, 255, 255, 0.05);
+      }
+      .top-banner.hidden {
+        opacity: 0;
+        height: 0;
+        padding-top: 0;
+        padding-bottom: 0;
+        border-bottom: none;
+        overflow: hidden;
       }
 
       /* ─── Search section ─── */
@@ -146,6 +187,10 @@
         overflow: hidden;
       }
 
+      .top-banner {
+        font-size: 0.75rem; /* Make text a bit smaller on mobile so more of it fits in the single line */
+        padding-left: 10px;
+      }
       .hero-title {
         text-align: center;
         font-size: clamp(2rem, 6vw, 2.8rem);
@@ -876,17 +921,36 @@
   </head>
   <body>
     <!-- Search section -->
-    <div class="top-banner">
-      Tired of slow, rigid npm searches? <strong>We built a fast, semantic alternative.</strong>
+
+    <div class="top-banner" id="topBanner">
+      <div class="top-banner-content">
+        Tired of slow, rigid npm searches?
+        <strong>We built a fast, semantic alternative.</strong>
+      </div>
+      <button
+        class="top-banner-close"
+        id="topBannerClose"
+        aria-label="Dismiss banner"
+      >
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
     </div>
     <section class="search-section">
       <div class="logo-row">
         <button class="back-btn" id="backBtn" aria-label="Back">←</button>
-        <img
-          src="/npm%20search%20logo.png"
-          alt="npm search"
-          class="app-logo"
-        />
+        <img src="/npm%20search%20logo.png" alt="npm search" class="app-logo" />
       </div>
 
       <div class="hero-wrap">
@@ -1257,6 +1321,24 @@
         }
 
         // ── Events ─────────────────────────────────────────────────────────────────
+
+        const topBanner = document.getElementById("topBanner");
+        const topBannerClose = document.getElementById("topBannerClose");
+
+        if (topBannerClose && topBanner) {
+          // Check if user previously dismissed it
+          if (localStorage.getItem("hideNpmSearchBanner") === "true") {
+            topBanner.style.display = "none";
+          } else {
+            topBannerClose.addEventListener("click", () => {
+              topBanner.classList.add("hidden");
+              localStorage.setItem("hideNpmSearchBanner", "true");
+              setTimeout(() => {
+                topBanner.style.display = "none";
+              }, 300);
+            });
+          }
+        }
 
         goBtn.addEventListener("click", () => search(input.value));
 
