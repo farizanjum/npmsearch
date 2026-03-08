@@ -53,10 +53,15 @@ async function zeRequest(path, body, retries = 4) {
 
       const text = await res.text();
       if (!res.ok) {
-        throw new Error(`HTTP ${res.status}: ${text}`);
+        const err = new Error(`HTTP ${res.status}: ${text}`);
+        err.status = res.status;
+        throw err;
       }
       return JSON.parse(text);
     } catch (err) {
+      if (err.status && err.status >= 400 && err.status < 500 && err.status !== 429) {
+        throw err;
+      }
       if (attempt === retries) throw err;
       const wait = Math.pow(2, attempt) * 500;
       console.warn(`  Retry ${attempt + 1}/${retries} for ${path}: ${err.message}`);
@@ -90,19 +95,32 @@ async function ensureCollection() {
 // Step 2 – Fetch packages from the npm registry
 // ---------------------------------------------------------------------------
 
-async function fetchPage(from) {
+async function fetchPage(from, retries = 5) {
   const url =
-    `${NPM_SEARCH_URL}?text=&size=${PAGE_SIZE}&from=${from}` +
+    `${NPM_SEARCH_URL}?text=keywords:%22%22&size=${PAGE_SIZE}&from=${from}` +
     `&quality=0.0&popularity=1.0&maintenance=0.0`;
 
-  const res = await fetch(url, {
-    headers: { 'User-Agent': 'npm-semantic-search-indexer/1.0' },
-  });
-  if (!res.ok) {
-    throw new Error(`npm registry returned HTTP ${res.status} for from=${from}`);
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'npm-semantic-search-indexer/1.0' },
+    });
+    
+    if (res.status === 429 || res.status >= 500) {
+      const wait = Math.pow(2, attempt) * 2000;
+      process.stdout.write(`\n  npm registry HTTP ${res.status} for from=${from} – waiting ${wait}ms before retry…\n`);
+      await sleep(wait);
+      continue;
+    }
+    
+    if (!res.ok) {
+      throw new Error(`npm registry returned HTTP ${res.status} for from=${from}`);
+    }
+    
+    const data = await res.json();
+    return data.objects || [];
   }
-  const data = await res.json();
-  return data.objects || [];
+  
+  throw new Error(`npm registry returned HTTP 429 for from=${from} after ${retries} retries.`);
 }
 
 async function fetchAllPackages() {
@@ -186,17 +204,27 @@ function buildDocument(obj) {
 // ---------------------------------------------------------------------------
 
 async function upsertDocument(doc) {
-  await zeRequest('/v1/documents/add-document', {
-    collection_name: COLLECTION_NAME,
-    path: doc.path,
-    content: {
-      type: 'text',
-      text: doc.text,
-    },
-    metadata: doc.metadata,
-    overwrite: true,
-  });
+  try {
+    await zeRequest('/v1/documents/add-document', {
+      collection_name: COLLECTION_NAME,
+      path: doc.path,
+      content: {
+        type: 'text',
+        text: doc.text,
+      },
+      metadata: doc.metadata,
+    });
+  } catch (err) {
+    if (err.message.includes('409') || err.message.toLowerCase().includes('already exists') || err.message.toLowerCase().includes('conflict')) {
+      // Document already exists, skip it, or log it but don't fail
+      // We'll consider this a successful "upsert" (since the data is already there and we don't need to overwrite it)
+      return;
+    } else {
+      throw err;
+    }
+  }
 }
+
 
 async function indexPackages(packages) {
   console.log(`\nIndexing ${packages.length.toLocaleString()} packages into ZeroEntropy…`);
