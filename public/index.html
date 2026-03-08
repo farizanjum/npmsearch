@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>npm semantic search</title>
+    <title>npm search | Powered by ZeroEntropy</title>
     <meta
       name="description"
       content="Search 10,000 top npm packages by meaning. Type what you need in plain English."
@@ -57,6 +57,22 @@
         display: flex;
         flex-direction: column;
         align-items: center;
+      }
+
+      /* ─── Top Banner ─── */
+      .top-banner {
+        width: 100%;
+        background: var(--surface2);
+        border-bottom: 1px solid var(--border);
+        color: var(--muted);
+        font-size: 0.82rem;
+        text-align: center;
+        padding: 9px 20px;
+        line-height: 1.4;
+      }
+      .top-banner strong {
+        color: var(--text);
+        font-weight: 500;
       }
 
       /* ─── Search section ─── */
@@ -695,19 +711,19 @@
         opacity: 1;
       }
       .ze-branding span {
-        font-size: 0.85rem;
+        font-size: 0.78rem;
         color: var(--dim);
         font-weight: 500;
         letter-spacing: 0.02em;
       }
       .ze-branding img {
-        height: 30px; /* Normal size for a properly cropped 375x65 image */
+        height: 20px;
         width: auto;
         display: block;
         border-radius: 4px; /* Slight rounding for a JPG */
       }
       .footer-logo {
-        height: 16px;
+        height: 12px;
         vertical-align: middle;
         opacity: 1;
         margin-bottom: 2px;
@@ -725,9 +741,12 @@
       }
 
       .app-logo {
-        height: 40px;
+        height: 64px; /* Increase height a bit for the new chunky pixel logo */
         width: auto;
         display: block;
+        filter: drop-shadow(
+          0 4px 6px rgba(204, 53, 52, 0.2)
+        ); /* Add a subtle red shadow since it's a cool pixel logo */
       }
 
       .back-btn {
@@ -795,9 +814,50 @@
       }
 
       /* ─── Responsive ─── */
-      @media (max-width: 500px) {
+      @media (max-width: 600px) {
         .hero-title {
-          font-size: 1.75rem;
+          font-size: 1.7rem;
+        }
+        .hero-sub {
+          font-size: 0.85rem;
+          margin-bottom: 20px;
+        }
+        .ze-branding img {
+          height: 20px; /* Even smaller on mobile */
+        }
+        .app-logo {
+          height: 40px; /* Scale down main logo so it fits with the back button */
+        }
+        .search-section {
+          padding: 0 14px;
+        }
+        #q {
+          padding: 12px 105px 12px 42px; /* Adjust padding so text doesn't hide under button */
+          font-size: 0.95rem;
+        }
+        .search-icon {
+          left: 14px;
+        }
+        .search-icon svg {
+          width: 16px;
+          height: 16px;
+        }
+        .go-btn {
+          padding: 7px 12px;
+          font-size: 0.8rem;
+        }
+        .chips {
+          gap: 8px;
+        }
+        .chip {
+          font-size: 0.75rem;
+          padding: 4px 10px;
+        }
+        .results-area {
+          padding: 0 14px 40px;
+        }
+        .card {
+          padding: 15px 16px 12px;
         }
         .install-row {
           flex-wrap: wrap;
@@ -805,18 +865,26 @@
         .copy-btn {
           width: 100%;
           justify-content: center;
+          padding: 9px 12px; /* Taller touch target on mobile */
+        }
+        .site-footer {
+          padding: 16px 14px;
+          font-size: 0.7rem;
         }
       }
     </style>
   </head>
   <body>
     <!-- Search section -->
+    <div class="top-banner">
+      Tired of slow, rigid npm searches? <strong>We built a fast, semantic alternative.</strong>
+    </div>
     <section class="search-section">
       <div class="logo-row">
         <button class="back-btn" id="backBtn" aria-label="Back">←</button>
         <img
-          src="/npm-search-logo-optimized.png"
-          alt="npm semantic search"
+          src="/npm%20search%20logo.png"
+          alt="npm search"
           class="app-logo"
         />
       </div>
